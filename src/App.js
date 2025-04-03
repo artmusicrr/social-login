@@ -14,7 +14,6 @@ import "./App.css";
 const ProtectedLayout = () => {
   return (
     <div>
-      <Home />
       <Outlet />
     </div>
   );
@@ -37,8 +36,15 @@ function App() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<Home />} />
           </Route>
-          <Route path="/" element={<Navigate to="/protegida" replace />} />
-          <Route path="*" element={<Navigate to="/protegida" replace />} />
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <Navigate to="/protegida/dashboard" replace />
+              </PrivateRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>
     </Router>

@@ -5,32 +5,42 @@ import {
   facebookProvider,
   githubProvider,
 } from "../firebase";
-import { signInWithPopup, signOut } from "firebase/auth";
+import { signInWithPopup, signOut, AuthError } from "firebase/auth";
+import {
+  AuthState,
+  AuthProviders,
+  UseAuthReturn,
+  User,
+  AuthProvider,
+} from "../types/auth";
 
-const useAuth = () => {
-  const [user, setUser] = useState(null);
+const useAuth = (): UseAuthReturn => {
+  const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
+    setLoading(true);
     const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+      setInitialized(true);
+      setLoading(false);
       if (user) {
-        setUser(user);
         setError("");
-      } else {
-        setUser(null);
       }
     });
 
     return () => unsubscribe();
   }, []);
 
-  const handleSocialLogin = async (provider) => {
+  const handleSocialLogin = async (provider: AuthProvider) => {
     try {
       setLoading(true);
       setError("");
       await signInWithPopup(auth, provider);
-    } catch (error) {
+    } catch (err) {
+      const error = err as AuthError;
       let errorMessage = "Ocorreu um erro durante o login.";
 
       switch (error.code) {
@@ -49,7 +59,7 @@ const useAuth = () => {
             "O popup de login foi bloqueado. Por favor, permita popups para este site.";
           break;
         default:
-          errorMessage = `Erro: ${error.message}`;
+          errorMessage = `Erro: ${error.message || "Erro desconhecido"}`;
       }
 
       setError(errorMessage);
@@ -73,6 +83,7 @@ const useAuth = () => {
     user,
     error,
     loading,
+    initialized,
     handleSocialLogin,
     handleLogout,
     providers: {
