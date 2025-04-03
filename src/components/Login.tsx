@@ -2,16 +2,45 @@ import React from "react";
 import useAuth from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 
-const Login = () => {
+interface AuthUser {
+  displayName: string | null;
+  photoURL: string | null;
+  email: string | null;
+}
+
+interface AuthProviders {
+  google: any;
+  facebook: any;
+  github: any;
+}
+
+interface AuthHook {
+  user: AuthUser | null;
+  error: string;
+  loading: boolean;
+  initialized: boolean;
+  handleSocialLogin: (provider: any) => Promise<void>;
+  handleLogout: () => Promise<void>;
+  providers: AuthProviders;
+}
+
+const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { user, error, loading, handleSocialLogin, handleLogout, providers } =
-    useAuth();
+  const {
+    user,
+    error,
+    loading,
+    handleSocialLogin,
+    handleLogout,
+    providers,
+    initialized,
+  } = useAuth();
 
   React.useEffect(() => {
-    if (!loading && user) {
+    if (initialized && user) {
       navigate("/protegida");
     }
-  }, [user, navigate, loading]);
+  }, [user, navigate, initialized]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
@@ -20,8 +49,8 @@ const Login = () => {
           <div className="text-center">
             <div className="mb-4">
               <img
-                src={user.photoURL}
-                alt={user.displayName}
+                src={user.photoURL || "/default-avatar.png"}
+                alt={user.displayName || "Usuário"}
                 className="h-24 w-24 rounded-full mx-auto"
               />
             </div>
