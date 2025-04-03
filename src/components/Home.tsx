@@ -1,7 +1,8 @@
 import useAuth from "../hooks/useAuth";
 import { useEffect, useState } from "react";
+import { AuthUser } from "../types/auth";
 
-const Home = () => {
+const Home: React.FC = () => {
   const { user, handleLogout } = useAuth();
   const [loginTime, setLoginTime] = useState("");
 
@@ -12,7 +13,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm">
+      <header className="bg-white shadow-sm fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-2 flex justify-between items-center">
           <h1 className="text-xl font-semibold text-gray-800">
             Área Protegida
@@ -43,7 +44,7 @@ const Home = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-6">
+      <main className="max-w-7xl mx-auto p-6 mt-16">
         <div className="bg-white rounded-lg shadow-lg p-8">
           <h2 className="text-2xl font-semibold text-gray-800 mb-4">
             Dashboard
@@ -51,12 +52,9 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-blue-50 rounded-lg p-6">
               <h3 className="text-lg font-medium text-blue-800 mb-2">
-                Informações do Usuário
+                Atividade
               </h3>
               <div className="space-y-2">
-                <p className="text-gray-600">
-                  <span className="font-medium">Email:</span> {user?.email}
-                </p>
                 <p className="text-gray-600">
                   <span className="font-medium">Último acesso:</span>{" "}
                   {loginTime}
