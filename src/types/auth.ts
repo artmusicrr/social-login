@@ -14,7 +14,6 @@ export interface AuthState {
 
 export interface AuthProviders {
   google: AuthProvider;
-  facebook: AuthProvider;
   github: AuthProvider;
 }
 
