@@ -1,12 +1,13 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, FirebaseOptions } from "firebase/app";
 import {
   getAuth,
   GoogleAuthProvider,
   FacebookAuthProvider,
   GithubAuthProvider,
+  Auth,
 } from "firebase/auth";
 
-const firebaseConfig = {
+const firebaseConfig: FirebaseOptions = {
   apiKey: "AIzaSyCnCRWy9fOCzSzKI4DQTNX4GTATH61-UZg",
   authDomain: "first-project-login-bddd5.firebaseapp.com",
   projectId: "first-project-login-bddd5",
