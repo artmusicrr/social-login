@@ -88,7 +88,6 @@ const useAuth = (): UseAuthReturn => {
     handleLogout,
     providers: {
       google: googleProvider,
-      facebook: facebookProvider,
       github: githubProvider,
     },
   };
