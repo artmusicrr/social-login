@@ -11,7 +11,9 @@ import Home from "./components/Home";
 import PrivateRoute from "./components/PrivateRoute";
 import "./App.css";
 
-const ProtectedLayout = () => {
+interface ProtectedLayoutProps {}
+
+const ProtectedLayout: React.FC<ProtectedLayoutProps> = () => {
   return (
     <div>
       <Outlet />
@@ -19,7 +21,7 @@ const ProtectedLayout = () => {
   );
 };
 
-function App() {
+const App: React.FC = () => {
   return (
     <Router>
       <div className="App">
@@ -49,6 +51,6 @@ function App() {
       </div>
     </Router>
   );
-}
+};
 
 export default App;
