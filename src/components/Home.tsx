@@ -1,15 +1,49 @@
 import useAuth from "../hooks/useAuth";
 import { useEffect, useState } from "react";
-import { AuthUser } from "../types/auth";
+// Removendo importação não utilizada que estava gerando warning
 
 const Home: React.FC = () => {
   const { user, handleLogout } = useAuth();
   const [loginTime, setLoginTime] = useState("");
+  const [creationTime, setCreationTime] = useState("");
+  const [lastSignInTime, setLastSignInTime] = useState("");
+  const [providerName, setProviderName] = useState("");
 
   useEffect(() => {
     const now = new Date();
     setLoginTime(now.toLocaleTimeString());
-  }, []);
+
+    if (user) {
+      // Extrair informações de metadata
+      if (user.metadata) {
+        const createdAt = user.metadata.creationTime;
+        const lastSignIn = user.metadata.lastSignInTime;
+
+        if (createdAt) {
+          setCreationTime(new Date(createdAt).toLocaleString());
+        }
+
+        if (lastSignIn) {
+          setLastSignInTime(new Date(lastSignIn).toLocaleString());
+        }
+      }
+
+      // Extrair informação do provedor
+      if (user.providerData && user.providerData.length > 0) {
+        const provider = user.providerData[0].providerId;
+        switch (provider) {
+          case "google.com":
+            setProviderName("Google");
+            break;
+          case "github.com":
+            setProviderName("GitHub");
+            break;
+          default:
+            setProviderName(provider);
+        }
+      }
+    }
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -44,28 +78,115 @@ const Home: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-6 mt-16">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+      <main className="max-w-7xl mx-auto p-4 mt-16">
+        <div className="bg-white rounded-lg shadow-md p-5">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">
             Dashboard
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-blue-50 rounded-lg p-6">
-              <h3 className="text-lg font-medium text-blue-800 mb-2">
+
+          {user && (
+            <div className="mb-8">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-4">
+                <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                  {user.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt="Foto de perfil"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-blue-100 text-blue-600 text-lg font-semibold">
+                      {user.displayName
+                        ? user.displayName.charAt(0).toUpperCase()
+                        : user.email
+                        ? user.email.charAt(0).toUpperCase()
+                        : "?"}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-base font-semibold text-gray-800">
+                    {user.displayName || "Usuário"}
+                  </h3>
+                  <p className="text-sm text-gray-600">{user.email}</p>
+                  {providerName && (
+                    <div className="mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Login via {providerName}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-blue-50 rounded-lg p-4">
+              <h3 className="text-base font-medium text-blue-800 mb-3">
+                Informações da Conta
+              </h3>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-sm text-gray-500">ID do Usuário</p>
+                  <p className="text-gray-700 font-medium break-all">
+                    {user?.uid || "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Email</p>
+                  <p className="text-gray-700 font-medium">
+                    {user?.email || "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Email Verificado</p>
+                  <p className="text-gray-700 font-medium">
+                    {user?.emailVerified ? (
+                      <span className="text-green-600">Sim</span>
+                    ) : (
+                      <span className="text-red-600">Não</span>
+                    )}
+                  </p>
+                </div>
+                {user?.phoneNumber && (
+                  <div>
+                    <p className="text-sm text-gray-500">Telefone</p>
+                    <p className="text-gray-700 font-medium">
+                      {user.phoneNumber}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-green-50 rounded-lg p-4">
+              <h3 className="text-base font-medium text-green-800 mb-3">
                 Atividade
               </h3>
               <div className="space-y-2">
-                <p className="text-gray-600">
-                  <span className="font-medium">Último acesso:</span>{" "}
-                  {loginTime}
-                </p>
+                <div>
+                  <p className="text-sm text-gray-500">Conta criada em</p>
+                  <p className="text-gray-700 font-medium">
+                    {creationTime || "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Último login</p>
+                  <p className="text-gray-700 font-medium">
+                    {lastSignInTime || "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Sessão atual iniciada às
+                  </p>
+                  <p className="text-gray-700 font-medium">{loginTime}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Status</p>
+                  <p className="text-green-600 font-medium">Ativa e segura</p>
+                </div>
               </div>
-            </div>
-            <div className="bg-green-50 rounded-lg p-6">
-              <h3 className="text-lg font-medium text-green-800 mb-2">
-                Status
-              </h3>
-              <p className="text-gray-600">Sua sessão está ativa e segura</p>
             </div>
           </div>
         </div>
