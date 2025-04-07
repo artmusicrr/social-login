@@ -6,9 +6,10 @@ import {
   Navigate,
   Outlet,
 } from "react-router-dom";
-import Login from "./components/Login";
-import Home from "./components/Home";
+import LoginPage from "./pages/login";
+import DashboardPage from "./pages/dashboard";
 import PrivateRoute from "./components/PrivateRoute";
+import { AuthContextProvider } from "./contexts/AuthContext";
 import "./App.css";
 
 interface ProtectedLayoutProps {}
@@ -23,33 +24,35 @@ const ProtectedLayout: React.FC<ProtectedLayoutProps> = () => {
 
 const App: React.FC = () => {
   return (
-    <Router>
-      <div className="App">
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/protegida"
-            element={
-              <PrivateRoute>
-                <ProtectedLayout />
-              </PrivateRoute>
-            }
-          >
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<Home />} />
-          </Route>
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <Navigate to="/protegida/dashboard" replace />
-              </PrivateRoute>
-            }
-          />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </div>
-    </Router>
+    <AuthContextProvider>
+      <Router>
+        <div className="App">
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/protegida"
+              element={
+                <PrivateRoute>
+                  <ProtectedLayout />
+                </PrivateRoute>
+              }
+            >
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard" element={<DashboardPage />} />
+            </Route>
+            <Route
+              path="/"
+              element={
+                <PrivateRoute>
+                  <Navigate to="/protegida/dashboard" replace />
+                </PrivateRoute>
+              }
+            />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </div>
+      </Router>
+    </AuthContextProvider>
   );
 };
 

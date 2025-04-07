@@ -1,18 +1,8 @@
 import { useState, useEffect } from "react";
-import {
-  auth,
-  googleProvider,
-  facebookProvider,
-  githubProvider,
-} from "../firebase";
-import { signInWithPopup, signOut, AuthError } from "firebase/auth";
-import {
-  AuthState,
-  AuthProviders,
-  UseAuthReturn,
-  User,
-  AuthProvider,
-} from "../types/auth";
+import { auth, googleProvider, githubProvider } from "../services/firebase";
+import { AuthError, onAuthStateChanged } from "firebase/auth";
+import { UseAuthReturn, User, AuthProvider } from "../types/auth";
+import { authService } from "../services/auth";
 
 const useAuth = (): UseAuthReturn => {
   const [user, setUser] = useState<User | null>(null);
@@ -22,14 +12,14 @@ const useAuth = (): UseAuthReturn => {
 
   useEffect(() => {
     setLoading(true);
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setInitialized(true);
       setLoading(false);
       if (user) {
         setError("");
       }
-    });
+    }) || (() => {}); // Garantir que unsubscribe seja uma função válida
 
     return () => unsubscribe();
   }, []);
@@ -38,31 +28,10 @@ const useAuth = (): UseAuthReturn => {
     try {
       setLoading(true);
       setError("");
-      await signInWithPopup(auth, provider);
+      await authService.loginWithSocialProvider(provider);
     } catch (err) {
       const error = err as AuthError;
-      let errorMessage = "Ocorreu um erro durante o login.";
-
-      switch (error.code) {
-        case "auth/popup-closed-by-user":
-          errorMessage = "Login cancelado. Por favor, tente novamente.";
-          break;
-        case "auth/account-exists-with-different-credential":
-          errorMessage = "Esta conta já existe com um provedor diferente.";
-          break;
-        case "auth/cancelled-popup-request":
-          errorMessage =
-            "Apenas uma janela de login pode estar aberta por vez.";
-          break;
-        case "auth/popup-blocked":
-          errorMessage =
-            "O popup de login foi bloqueado. Por favor, permita popups para este site.";
-          break;
-        default:
-          errorMessage = `Erro: ${error.message || "Erro desconhecido"}`;
-      }
-
-      setError(errorMessage);
+      setError(authService.getFormattedError(error));
     } finally {
       setLoading(false);
     }
@@ -71,7 +40,7 @@ const useAuth = (): UseAuthReturn => {
   const handleLogout = async () => {
     try {
       setLoading(true);
-      await signOut(auth);
+      await authService.logout();
     } catch (error) {
       setError("Erro ao fazer logout. Por favor, tente novamente.");
     } finally {

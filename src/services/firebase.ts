@@ -7,14 +7,15 @@ import {
   Auth,
 } from "firebase/auth";
 
+// Utilizando variáveis de ambiente para configuração do Firebase
 const firebaseConfig: FirebaseOptions = {
-  apiKey: "AIzaSyCnCRWy9fOCzSzKI4DQTNX4GTATH61-UZg",
-  authDomain: "first-project-login-bddd5.firebaseapp.com",
-  projectId: "first-project-login-bddd5",
-  storageBucket: "first-project-login-bddd5.firebasestorage.app",
-  messagingSenderId: "105591447415",
-  appId: "1:105591447415:web:8ef026c94071b963edcb72",
-  measurementId: "G-ERH5P9FEC0",
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = initializeApp(firebaseConfig);
