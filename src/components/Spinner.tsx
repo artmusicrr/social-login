@@ -1,10 +1,5 @@
 import React from "react";
-
-interface SpinnerProps {
-  size?: "small" | "medium" | "large";
-  color?: string;
-  className?: string;
-}
+import { SpinnerProps } from "../types/spinner";
 
 const Spinner: React.FC<SpinnerProps> = ({
   size = "medium",
