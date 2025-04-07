@@ -1,4 +1,4 @@
-import useAuth from "../hooks/useAuth";
+import { useAuth } from "../contexts/AuthContext";
 import { useEffect, useState } from "react";
 // Removendo importação não utilizada que estava gerando warning
 
