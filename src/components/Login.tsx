@@ -2,28 +2,6 @@ import React from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-interface AuthUser {
-  displayName: string | null;
-  photoURL: string | null;
-  email: string | null;
-}
-
-interface AuthProviders {
-  google: any;
-  facebook: any;
-  github: any;
-}
-
-interface AuthHook {
-  user: AuthUser | null;
-  error: string;
-  loading: boolean;
-  initialized: boolean;
-  handleSocialLogin: (provider: any) => Promise<void>;
-  handleLogout: () => Promise<void>;
-  providers: AuthProviders;
-}
-
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const {
