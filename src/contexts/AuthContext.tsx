@@ -12,24 +12,7 @@ import {
   AuthError,
   onAuthStateChanged,
 } from "firebase/auth";
-import { User, AuthProvider as AuthProviderType } from "../types/auth";
-
-interface AuthContextType {
-  user: User | null;
-  error: string;
-  loading: boolean;
-  initialized: boolean;
-  handleSocialLogin: (provider: AuthProviderType) => Promise<void>;
-  handleLogout: () => Promise<void>;
-  providers: {
-    google: AuthProviderType;
-    github: AuthProviderType;
-  };
-}
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
+import { User, AuthContextType, AuthProviderProps, AuthProviderType } from "../types/auth";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
