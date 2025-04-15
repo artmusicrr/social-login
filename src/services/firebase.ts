@@ -5,6 +5,8 @@ import {
   FacebookAuthProvider,
   GithubAuthProvider,
   Auth,
+  setPersistence,
+  browserSessionPersistence,
 } from "firebase/auth";
 
 // Utilizando variáveis de ambiente para configuração do Firebase
@@ -32,3 +34,8 @@ facebookProvider.addScope("public_profile");
 
 // Configurando escopos adicionais para o GitHub
 githubProvider.addScope("user:email");
+
+// Configurando a persistência de autenticação para a sessão do navegador
+setPersistence(auth, browserSessionPersistence).catch((error) => {
+  console.error("Erro ao configurar a persistência de autenticação:", error);
+});
