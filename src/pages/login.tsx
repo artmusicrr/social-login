@@ -27,8 +27,7 @@ interface AuthHook {
 }
 
 const LoginPage: React.FC = () => {
-  const navigate = useNavigate();
-  const {
+  const navigate = useNavigate();  const {
     user,
     error,
     loading,
@@ -42,7 +41,17 @@ const LoginPage: React.FC = () => {
     if (initialized && user) {
       navigate("/protegida");
     }
-  }, [user, navigate, initialized]);  return (
+  }, [user, navigate, initialized]);
+  
+  // Adiciona a classe no-scroll ao body quando o componente de login é montado
+  useEffect(() => {
+    document.body.classList.add('no-scroll');
+    
+    // Remove a classe quando o componente é desmontado
+    return () => {
+      document.body.classList.remove('no-scroll');
+    };
+  }, []);return (
     <div className="h-screen overflow-hidden bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">      <header className="bg-white dark:bg-gray-800 shadow-sm fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-200">Login</h1>
