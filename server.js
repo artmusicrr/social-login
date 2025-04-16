@@ -21,6 +21,37 @@ if (!fs.existsSync(DOWNLOADS_DIR)) {
 // Servir arquivos estáticos da pasta 'public'
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Função para listar arquivos recentes na pasta de downloads
+function getRecentFiles(directory, timeThresholdMs = 60000) {
+  if (!fs.existsSync(directory)) {
+    return [];
+  }
+  
+  const now = Date.now();
+  const cutoffTime = now - timeThresholdMs;
+  
+  try {
+    const files = fs.readdirSync(directory);
+    
+    return files
+      .map(file => {
+        const filePath = path.join(directory, file);
+        const stats = fs.statSync(filePath);
+        return {
+          name: file,
+          path: filePath,
+          time: stats.mtime.getTime(),
+          isRecent: stats.mtime.getTime() > cutoffTime
+        };
+      })
+      .filter(file => file.isRecent)
+      .sort((a, b) => b.time - a.time); // Ordenar por mais recente primeiro
+  } catch (err) {
+    console.error(`Erro ao ler diretório ${directory}:`, err);
+    return [];
+  }
+}
+
 // Endpoint para processar downloads
 app.post('/api/youtube/download', (req, res) => {
   const { videoUrl, formatId, outputPath } = req.body;
@@ -34,15 +65,59 @@ app.post('/api/youtube/download', (req, res) => {
   
   // Formata o caminho de saída para ser salvo na pasta de downloads
   const baseOutputPath = path.join(DOWNLOADS_DIR, path.basename(outputPath || 'video'));
-  
   console.log(`Iniciando download: ${videoUrl}`);
   console.log(`Formato: ${formatId}`);
   console.log(`Caminho de saída: ${baseOutputPath}`);
-    // Caminho para o script PowerShell
-  const scriptPath = path.join(__dirname, 'scripts', 'baixar-video.ps1');
   
-  // Comando para executar o script PowerShell no Windows
-  const command = `powershell -ExecutionPolicy Bypass -File "${scriptPath}" "${videoUrl}" "${formatId}" "${baseOutputPath}"`;
+  // Simplifica a seleção de formato para evitar problemas de mesclagem
+  let ytdlpFormat;
+  switch (formatId) {
+    case 'best':
+    case 'video-fullhd':
+      ytdlpFormat = 'best[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best';
+      break;
+    case 'video-hd':
+      ytdlpFormat = 'best[height<=720][ext=mp4]/bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best';
+      break;
+    case 'video-sd':
+      ytdlpFormat = 'best[height<=480][ext=mp4]/bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best';
+      break;
+    case 'audio':
+      ytdlpFormat = 'bestaudio[ext=m4a]/bestaudio';
+      break;
+    default:
+      ytdlpFormat = 'best[ext=mp4]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best';
+  }
+  
+  // Detecta ambiente
+  const isWindows = process.platform === 'win32';
+  const isWSL = process.platform === 'linux' && process.env.WSL_DISTRO_NAME;
+  
+  // Define um nome de arquivo personalizado para o download com timestamp para evitar sobrescrever arquivos
+  const customFileName = `downloaded_video_${Date.now()}`;
+  
+  // Caminho de saída do arquivo
+  let outputTemplate;
+  let command;  if (isWSL) {
+    // No WSL, vamos usar o script bash dedicado para download
+    // Este script lida melhor com a integração entre WSL e Windows
+    const scriptPath = path.join(__dirname, 'scripts', 'download-youtube.sh');
+    outputTemplate = `downloaded_video_${Date.now()}`;
+    command = `bash ${scriptPath} "${videoUrl}" "${ytdlpFormat}" "${outputTemplate}"`;
+  } else if (isWindows) {
+    // No Windows, usa caminho absoluto com barras invertidas escapadas
+    outputTemplate = `${DOWNLOADS_DIR.replace(/\\/g, '\\\\')}\\${customFileName}.mp4`;
+    command = `yt-dlp "${videoUrl}" -f "${ytdlpFormat}" -o "${outputTemplate}" --merge-output-format mp4 --no-playlist --restrict-filenames --print filename`;
+  } else {
+    // No Linux nativo
+    outputTemplate = `${DOWNLOADS_DIR.replace(/\\/g, '/')}/${customFileName}.mp4`;
+    command = `python3 -m yt_dlp "${videoUrl}" -f "${ytdlpFormat}" -o "${outputTemplate}" --merge-output-format mp4 --no-playlist --restrict-filenames --print filename`;
+  }
+  
+  console.log(`Sistema operacional: ${process.platform}`);
+  console.log(`Ambiente WSL: ${isWSL ? 'Sim' : 'Não'}`);
+  console.log(`Executando comando: ${command}`);
+  
   exec(command, (error, stdout, stderr) => {
     if (error) {
       console.error(`Erro na execução: ${error.message}`);
@@ -60,17 +135,52 @@ app.post('/api/youtube/download', (req, res) => {
     
     // Verifica se o arquivo foi gerado
     try {
-      // Busca arquivos que correspondam ao padrão (para lidar com extensões desconhecidas)
-      const dirName = path.dirname(baseOutputPath);
-      const baseName = path.basename(baseOutputPath);
+      // Tenta extrair o nome do arquivo da saída do yt-dlp
+      const outputLines = stdout.trim().split('\n');
+      const lastLine = outputLines[outputLines.length - 1];
       
-      const files = fs.readdirSync(dirName).filter(file => 
-        file.startsWith(baseName) || file.startsWith(path.parse(baseName).name)
-      );
+      console.log(`Arquivo indicado pelo yt-dlp: ${lastLine}`);
+        // O nome do arquivo que esperamos (independente do caminho)
+      const expectedFileName = `${customFileName}.mp4`;
       
-      if (files.length > 0) {
-        const fileName = files[0];
-        // Caminho relativo para o frontend
+      // Conjunto de caminhos para verificar, em ordem de prioridade
+      const pathsToCheck = [
+        lastLine, // Caminho exato reportado pelo yt-dlp
+        path.join(DOWNLOADS_DIR, path.basename(lastLine)), // Apenas o nome do arquivo na pasta de downloads
+        path.join(DOWNLOADS_DIR, expectedFileName), // O nome customizado na pasta de downloads
+        path.join(__dirname, 'public', 'downloads', expectedFileName), // Caminho relativo ao projeto
+        path.join(__dirname, 'public', 'downloads', path.basename(lastLine)), // Nome do arquivo na pasta do projeto
+        `./public/downloads/${expectedFileName}`, // Caminho relativo simples
+        expectedFileName, // Apenas o nome do arquivo
+        `./${expectedFileName}` // Nome do arquivo na pasta atual
+      ];
+      
+      console.log(`Verificando possíveis locais do arquivo:`);
+      for (const filePath of pathsToCheck) {
+        if (!filePath) continue;
+        console.log(`- Verificando: ${filePath}`);
+        if (fs.existsSync(filePath)) {
+          console.log(`✓ Arquivo encontrado: ${filePath}`);
+          // Extrai apenas o nome do arquivo do caminho completo
+          const fileName = path.basename(filePath);
+          // Caminho relativo para o frontend
+          const frontendPath = `/downloads/${fileName}`;
+          
+          return res.json({
+            success: true,
+            fileName: fileName,
+            filePath: frontendPath
+          });
+        }
+      }
+      
+      // Se nenhum dos caminhos específicos funcionou, procura por arquivos recentes
+      console.log(`Buscando arquivos recentes na pasta de downloads...`);
+      const recentFiles = getRecentFiles(DOWNLOADS_DIR, 60000); // Arquivos dos últimos 60 segundos
+      
+      if (recentFiles.length > 0) {
+        console.log(`Encontrados arquivos recentes: ${recentFiles.map(f => f.name).join(', ')}`);
+        const fileName = recentFiles[0].name;
         const filePath = `/downloads/${fileName}`;
         
         return res.json({
@@ -78,12 +188,40 @@ app.post('/api/youtube/download', (req, res) => {
           fileName: fileName,
           filePath: filePath
         });
-      } else {
-        return res.status(404).json({
-          success: false,
-          error: 'Arquivo não encontrado após o download'
-        });
       }
+      
+      // Último recurso: verifica se há algum arquivo na pasta de downloads
+      console.log(`Buscando qualquer arquivo na pasta de downloads...`);
+      const files = fs.readdirSync(DOWNLOADS_DIR);
+      
+      if (files.length > 0) {
+        // Pega o arquivo mais recentemente modificado na pasta de downloads
+        const mostRecentFile = files
+          .map(file => ({
+            name: file,
+            time: fs.statSync(path.join(DOWNLOADS_DIR, file)).mtime.getTime()
+          }))
+          .sort((a, b) => b.time - a.time)[0];
+        
+        if (mostRecentFile) {
+          console.log(`Arquivo mais recente encontrado: ${mostRecentFile.name}`);
+          const fileName = mostRecentFile.name;
+          const filePath = `/downloads/${fileName}`;
+          
+          return res.json({
+            success: true,
+            fileName: fileName,
+            filePath: filePath
+          });
+        }
+      }
+      
+      // Se chegou aqui, realmente não encontrou nenhum arquivo
+      console.log(`Pasta de downloads vazia ou nenhum arquivo encontrado.`);
+      return res.status(404).json({
+        success: false,
+        error: 'Nenhum arquivo encontrado na pasta de downloads'
+      });
     } catch (err) {
       console.error('Erro ao verificar arquivo:', err);
       return res.status(500).json({
@@ -95,6 +233,6 @@ app.post('/api/youtube/download', (req, res) => {
 });
 
 // Iniciar o servidor
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
