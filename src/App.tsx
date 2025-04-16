@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import LoginPage from "./pages/login";
 import DashboardPage from "./pages/dashboard";
+import YouTubeDownloader from "./pages/youtube-downloader";
 import PrivateRoute from "./components/PrivateRoute";
 import { AuthContextProvider } from "./contexts/AuthContext";
 import ThemeToggle from "./components/ThemeToggle";
@@ -33,8 +34,7 @@ const App: React.FC = () => {
             <ThemeToggle />
           </header>
           <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route
+            <Route path="/login" element={<LoginPage />} />            <Route
               path="/protegida"
               element={
                 <PrivateRoute>
@@ -44,6 +44,7 @@ const App: React.FC = () => {
             >
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<DashboardPage />} />
+              <Route path="youtube" element={<YouTubeDownloader />} />
             </Route>
             <Route
               path="/"
