@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { searchYouTube } from '../api/youtube/search-api';
 import { getAvailableFormats } from '../api/youtube/formats';
 import { downloadVideo } from '../api/youtube/download-yt-dlp';
+import { deleteDownloadedFile } from '../api/youtube/file-manager';
 
 const YouTubeDownloader: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -247,17 +248,32 @@ const YouTubeDownloader: React.FC = () => {
                   {message}
                 </div>
               )}
-              
-              {downloadLink && (
+                {downloadLink && (
                 <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-600 rounded-md">
                   <p className="mb-2 font-medium">Download pronto!</p>
                   <a 
                     href={downloadLink}
                     download={downloadFileName}
                     className="text-blue-600 dark:text-blue-400 hover:underline"
+                    onClick={() => {
+                      // Agenda a exclusão do arquivo após um pequeno atraso para garantir que o download inicie
+                      setTimeout(() => {
+                        deleteDownloadedFile(downloadFileName)
+                          .then(result => {
+                            if (result.success) {
+                              console.log(`Arquivo ${downloadFileName} excluído com sucesso após o download`);
+                            } else {
+                              console.warn(`Não foi possível excluir o arquivo: ${result.error}`);
+                            }
+                          });
+                      }, 1000);
+                    }}
                   >
                     Clique aqui para baixar o arquivo
                   </a>
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    O arquivo será removido do servidor automaticamente após o download.
+                  </p>
                 </div>
               )}
             </div>
