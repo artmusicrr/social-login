@@ -97,20 +97,18 @@ app.post('/api/youtube/download', (req, res) => {
   const customFileName = `downloaded_video_${Date.now()}`;
   
   // Caminho de saída do arquivo
-  let outputTemplate;
-  let command;  if (isWSL) {
+  let outputTemplate;  let command;  if (isWSL) {
     // No WSL, vamos usar o script bash dedicado para download
     // Este script lida melhor com a integração entre WSL e Windows
     const scriptPath = path.join(__dirname, 'scripts', 'download-youtube.sh');
     outputTemplate = `downloaded_video_${Date.now()}`;
     command = `bash ${scriptPath} "${videoUrl}" "${ytdlpFormat}" "${outputTemplate}"`;
   } else if (isWindows) {
-    // No Windows, usa caminho absoluto com barras invertidas escapadas
-    outputTemplate = `${DOWNLOADS_DIR.replace(/\\/g, '\\\\')}\\${customFileName}.mp4`;
+    // No Windows, usamos o título original do vídeo
+    outputTemplate = `${DOWNLOADS_DIR.replace(/\\/g, '\\\\')}\\%(title)s.%(ext)s`;
     command = `yt-dlp "${videoUrl}" -f "${ytdlpFormat}" -o "${outputTemplate}" --merge-output-format mp4 --no-playlist --restrict-filenames --print filename`;
-  } else {
-    // No Linux nativo
-    outputTemplate = `${DOWNLOADS_DIR.replace(/\\/g, '/')}/${customFileName}.mp4`;
+  } else {    // No Linux nativo, também usamos o título original
+    outputTemplate = `${DOWNLOADS_DIR.replace(/\\/g, '/')}/%(title)s.%(ext)s`;
     command = `python3 -m yt_dlp "${videoUrl}" -f "${ytdlpFormat}" -o "${outputTemplate}" --merge-output-format mp4 --no-playlist --restrict-filenames --print filename`;
   }
   
@@ -228,11 +226,88 @@ app.post('/api/youtube/download', (req, res) => {
         success: false,
         error: `Erro ao verificar o arquivo: ${err.message}`
       });
-    }
-  });
+    }  });
 });
+
+// Endpoint para excluir arquivo após o download
+app.delete('/api/youtube/download/:fileName', (req, res) => {
+  try {
+    const { fileName } = req.params;
+    
+    // Protege contra tentativas de acesso a outras pastas usando path traversal
+    if (fileName.includes('..') || fileName.includes('/') || fileName.includes('\\')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Nome de arquivo inválido'
+      });
+    }
+    
+    const filePath = path.join(DOWNLOADS_DIR, fileName);
+    console.log(`Solicitação para excluir arquivo: ${filePath}`);
+    
+    // Verifica se o arquivo existe
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        error: 'Arquivo não encontrado'
+      });
+    }
+    
+    // Remove o arquivo
+    fs.unlinkSync(filePath);
+    console.log(`Arquivo excluído com sucesso: ${filePath}`);
+    
+    return res.json({
+      success: true,
+      message: 'Arquivo excluído com sucesso'
+    });
+  } catch (err) {
+    console.error(`Erro ao excluir arquivo: ${err.message}`);
+    return res.status(500).json({
+      success: false,
+      error: `Erro ao excluir arquivo: ${err.message}`
+    });
+  }
+});
+
+// Função para limpar arquivos antigos da pasta de downloads
+function cleanupOldFiles(directory, maxAgeMs = 24 * 60 * 60 * 1000) { // 24 horas por padrão
+  try {
+    if (!fs.existsSync(directory)) return;
+    
+    console.log(`Iniciando limpeza de arquivos antigos em: ${directory}`);
+    const now = Date.now();
+    const cutoffTime = now - maxAgeMs;
+    
+    const files = fs.readdirSync(directory);
+    let removedCount = 0;
+    
+    files.forEach(file => {
+      const filePath = path.join(directory, file);
+      const stats = fs.statSync(filePath);
+      
+      if (stats.isFile() && stats.mtimeMs < cutoffTime) {
+        fs.unlinkSync(filePath);
+        console.log(`Arquivo antigo removido: ${filePath}`);
+        removedCount++;
+      }
+    });
+    
+    console.log(`Limpeza concluída. Removidos ${removedCount} arquivos antigos.`);
+  } catch (err) {
+    console.error(`Erro ao limpar arquivos antigos: ${err.message}`);
+  }
+}
 
 // Iniciar o servidor
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor rodando na porta ${PORT}`);
+  
+  // Executa a limpeza inicial ao iniciar o servidor
+  cleanupOldFiles(DOWNLOADS_DIR);
+  
+  // Configura limpeza automática a cada 6 horas
+  setInterval(() => {
+    cleanupOldFiles(DOWNLOADS_DIR);
+  }, 6 * 60 * 60 * 1000); // 6 horas em milissegundos
 });
