@@ -1,14 +1,23 @@
-/* Estilos para eliminar o scroll em toda a aplicação */
+/* Estilos para eliminar o scroll apenas na página de login */
 html, body {
   margin: 0;
   padding: 0;
+}
+
+/* Permite scroll em todas as páginas por padrão */
+#root {
+  min-height: 100%;
+}
+
+/* Desativa o scroll apenas em páginas específicas */
+body.no-scroll {
   overflow: hidden;
   height: 100%;
   position: fixed;
   width: 100%;
 }
 
-#root {
+body.no-scroll #root {
   height: 100%;
   overflow: hidden;
 }
