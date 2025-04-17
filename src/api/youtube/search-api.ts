@@ -11,7 +11,8 @@ interface SearchResult {
 }
 
 // Chave da API do YouTube (você precisará substituir por uma chave válida)
-const YOUTUBE_API_KEY = 'AIzaSyCb71rDeumXWIOgHMhodY5mBuzVf6th8tI';
+//const YOUTUBE_API_KEY = 'AIzaSyCb71rDeumXWIOgHMhodY5mBuzVf6th8tI';
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY ;
 
 /**
  * Converte a duração ISO 8601 para um formato legível (HH:MM:SS)
