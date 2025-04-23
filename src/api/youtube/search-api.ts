@@ -1,4 +1,6 @@
 // Implementação de busca no YouTube usando a API oficial do YouTube
+// import dotenv from 'dotenv';
+// dotenv.config();
 
 interface SearchResult {
   id: string;
@@ -10,9 +12,9 @@ interface SearchResult {
   url: string;
 }
 
-// Chave da API do YouTube (você precisará substituir por uma chave válida)
+
 //const YOUTUBE_API_KEY = 'AIzaSyCb71rDeumXWIOgHMhodY5mBuzVf6th8tI';
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY ;
+const YOUTUBE_API_KEY = process.env.REACT_APP_YOUTUBE_API_KEY ;
 
 /**
  * Converte a duração ISO 8601 para um formato legível (HH:MM:SS)
@@ -85,6 +87,12 @@ function formatViewCount(viewCount: string): string {
  * @returns Promise com os resultados da busca
  */
 export async function searchYouTube(query: string, maxResults = 10): Promise<SearchResult[]> {
+  // Verifica se a chave da API está realmente configurada e não está vazia
+  // if (!isApiKeyConfigured) {
+  //   console.log("Chave da API do YouTube não configurada ou inválida. Usando método alternativo de busca.");
+  //   return fallbackSearch(query, maxResults);
+  // }
+  
   console.log(`Buscando por "${query}" (máx: ${maxResults} resultados) usando API oficial do YouTube`);
   
   try {
@@ -94,6 +102,8 @@ export async function searchYouTube(query: string, maxResults = 10): Promise<Sea
     );
     
     if (!searchResponse.ok) {
+      const errorText = await searchResponse.text();
+      console.error(`Erro na resposta da API do YouTube: ${searchResponse.status} ${searchResponse.statusText} - ${errorText}`);
       throw new Error(`Erro na API do YouTube: ${searchResponse.status} ${searchResponse.statusText}`);
     }
     
@@ -167,7 +177,16 @@ async function fallbackSearch(query: string, maxResults: number): Promise<Search
     
     // Escolhe uma instância aleatória para distribuir a carga
     const baseUrl = invidiousInstances[Math.floor(Math.random() * invidiousInstances.length)];
-    const response = await fetch(`${baseUrl}/api/v1/search?q=${encodeURIComponent(query)}&type=video`);
+    
+    // Usa um proxy local para evitar problemas de CORS
+    // Faz a requisição pelo servidor Node.js em vez de diretamente do navegador
+    const proxyUrl = `/api/youtube-proxy?url=${encodeURIComponent(`${baseUrl}/api/v1/search?q=${encodeURIComponent(query)}&type=video`)}`;
+    
+    const response = await fetch(proxyUrl, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
     
     if (!response.ok) {
       throw new Error(`Erro na API do Invidious: ${response.status} ${response.statusText}`);

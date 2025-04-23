@@ -3,7 +3,6 @@ import React, {
   useContext,
   useState,
   useEffect,
-  ReactNode,
 } from "react";
 import { auth, googleProvider, githubProvider } from "../services/firebase";
 import {

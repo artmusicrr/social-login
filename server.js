@@ -63,6 +63,72 @@ app.post('/api/youtube/download', (req, res) => {
     });
   }
   
+  // Resto do código...
+
+// Endpoint de proxy para contornar problemas de CORS
+app.get('/api/youtube-proxy', async (req, res) => {
+  const { url } = req.query;
+  
+  if (!url) {
+    return res.status(400).json({
+      success: false,
+      error: 'URL é obrigatória'
+    });
+  }
+  
+  try {
+    console.log(`Proxy recebeu solicitação para: ${url}`);
+    
+    // Implementação direta usando https sem depender de node-fetch
+    const https = require('https');
+    
+    // Realiza a requisição HTTP diretamente
+    const request = https.get(url, (response) => {
+      let data = '';
+      
+      // Recebe os dados da resposta
+      response.on('data', (chunk) => {
+        data += chunk;
+      });
+      
+      // Quando a resposta completa for recebida
+      response.on('end', () => {
+        try {
+          // Tenta fazer o parse da resposta como JSON
+          const jsonData = JSON.parse(data);
+          res.json(jsonData);
+        } catch (e) {
+          // Se não for um JSON válido, retorna o erro
+          console.error('Erro ao processar dados do proxy:', e.message);
+          res.status(500).json({
+            success: false,
+            error: `Erro ao processar dados: ${e.message}`
+          });
+        }
+      });
+    });
+    
+    // Trata erros na requisição
+    request.on('error', (error) => {
+      console.error(`Erro na requisição do proxy: ${error.message}`);
+      res.status(500).json({
+        success: false, 
+        error: `Erro na requisição: ${error.message}`
+      });
+    });
+    
+    // Finaliza a requisição
+    request.end();
+    
+  } catch (error) {
+    console.error(`Erro no proxy: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: `Erro no proxy: ${error.message}`
+    });
+  }
+});
+  
   // Formata o caminho de saída para ser salvo na pasta de downloads
   const baseOutputPath = path.join(DOWNLOADS_DIR, path.basename(outputPath || 'video'));
   console.log(`Iniciando download: ${videoUrl}`);
